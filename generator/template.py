@@ -9,7 +9,10 @@ def _money(x):
 
 
 def _nice_date(iso):
-    return datetime.datetime.strptime(iso, "%Y-%m-%d").strftime("%b %d, %Y").replace(" 0", " ")
+    try:
+        return datetime.datetime.strptime(iso, "%Y-%m-%d").strftime("%b %d, %Y").replace(" 0", " ")
+    except (ValueError, TypeError):
+        return iso
 
 
 def _pretty_updated(iso):
@@ -20,7 +23,7 @@ def render_county_page(c, brand, site_url):
     recs = c["records"]
     n = len(recs)
     total = sum(r["overage"] for r in recs)
-    unclaimed = [r for r in recs if r["status"] == "Unclaimed"]
+    unclaimed = [r for r in recs if r.get("status", "Unclaimed") == "Unclaimed"]
     total_unclaimed = sum(r["overage"] for r in unclaimed)
     largest = max(recs, key=lambda r: r["overage"])
     updated = _pretty_updated(c["updated"])
@@ -33,24 +36,35 @@ def render_county_page(c, brand, site_url):
                 "Check if you are owed money and how to claim it free from the county.").format(
                     county, state, n, _money(total))
 
-    # table rows, sorted by overage desc
+    # optional middle column: property address if any, else sale amount if any, else none
+    has_addr = any(r.get("property_address") for r in recs)
+    has_sale = any(r.get("sale_amount") is not None for r in recs)
+    opt = "addr" if has_addr else ("sale" if has_sale else None)
+    opthead = ('<th class="opt">Property address</th>' if opt == "addr"
+               else ('<th class="opt">Sale amount</th>' if opt == "sale" else ""))
     rows = []
     for r in sorted(recs, key=lambda r: r["overage"], reverse=True):
-        status = r["status"]
+        status = r.get("status", "Unclaimed")
         badge = "unclaimed" if status == "Unclaimed" else ("filed" if "Claim" in status else "interpleader")
+        if opt == "addr":
+            optcell = '<td class="opt">{}</td>'.format(html.escape(r.get("property_address", "")))
+        elif opt == "sale":
+            optcell = '<td class="opt">{}</td>'.format(_money(r["sale_amount"]) if r.get("sale_amount") is not None else "")
+        else:
+            optcell = ""
         rows.append(
             '      <tr data-owner="{ol}" data-status="{b}">\n'
             '        <td class="owner">{o}</td>\n'
             '        <td class="ov">{ov}</td>\n'
             '        <td>{p}</td>\n'
+            '        {opt}\n'
             '        <td>{d}</td>\n'
-            '        <td>{sa}</td>\n'
             '        <td><span class="badge {b}">{s}</span></td>\n'
             '      </tr>'.format(
                 ol=html.escape(r["previous_owner"].lower()), b=badge,
                 o=html.escape(r["previous_owner"].title()), ov=_money(r["overage"]),
-                p=html.escape(r["parcel"]), d=_nice_date(r["sale_date"]),
-                sa=_money(r["sale_amount"]), s=html.escape(status)))
+                p=html.escape(r["parcel"]), opt=optcell, d=_nice_date(r["sale_date"]),
+                s=html.escape(status)))
     rows_html = "\n".join(rows)
 
     claim_form_line = ("{} requires no claim form.".format(county) if c.get("no_claim_form")
@@ -161,7 +175,7 @@ def render_county_page(c, brand, site_url):
  .other a{{background:var(--soft);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px;text-decoration:none}}
  footer{{border-top:1px solid var(--line);margin-top:40px;padding:22px 0;color:var(--muted);font-size:12.5px}}
  .disc{{font-size:12px;color:var(--muted);margin-top:18px}}
- @media(max-width:640px){{.stats{{grid-template-columns:repeat(2,1fr)}}h1{{font-size:24px}}th:nth-child(5),td:nth-child(5){{display:none}}}}
+ @media(max-width:640px){{.stats{{grid-template-columns:repeat(2,1fr)}}h1{{font-size:24px}}.opt{{display:none}}}}
 </style>
 </head>
 <body>
@@ -192,7 +206,7 @@ def render_county_page(c, brand, site_url):
  </div>
  <div style="overflow-x:auto">
  <table id="tbl">
-  <thead><tr><th>Former owner</th><th>Overage owed</th><th>Parcel / Map #</th><th>Sale date</th><th>Sale amount</th><th>Status</th></tr></thead>
+  <thead><tr><th>Former owner</th><th>Overage owed</th><th>Parcel / Map #</th>{opthead}<th>Sale date</th><th>Status</th></tr></thead>
   <tbody>
 {rows}
   </tbody>
@@ -242,7 +256,7 @@ def render_county_page(c, brand, site_url):
         abbr=c["state_abbr"], updated=updated, n=n, total=_money(total), tunc=_money(total_unclaimed),
         nunc=len(unclaimed), lg=_money(largest["overage"]), office=html.escape(c["holding_office"]),
         stat_url=c["statute_url"], stat_label=html.escape(c["statute_label"]),
-        addr=html.escape(c["office_address"]), rows=rows_html, faq=faq_html)
+        addr=html.escape(c["office_address"]), rows=rows_html, faq=faq_html, opthead=opthead)
 
     assert "—" not in doc, "em dash found in output for " + c["slug"]
     return doc
