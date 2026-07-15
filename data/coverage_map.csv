@@ -5,3 +5,8 @@ Cobb,GA,Tax Commissioner,https://www.cobbtax.gov/property/delinquent_taxes/index
 Gwinnett,GA,Tax Commissioner,https://www.gwinnetttaxcommissioner.com/property-tax/tax-sale-excess-funds,2,html-linked,y,unclaimed-refunds,2026-07-14,Also unclaimed refunds page
 Osceola,FL,Clerk of Court,https://courts.osceolaclerk.com/reports/TaxDeedsSurplusFundsAvailableWeb.pdf,1,pdf,n,,2026-07-14,No owner names; needs parcel to owner enrichment
 Los Angeles,CA,Treasurer-Tax Collector,https://ttc.lacounty.gov/notice-of-excess-proceeds/,2,html-linked,y,,2026-07-14,Multi-year EP listing downloads
+DeKalb,GA,Tax Commissioner,https://dekalbtax.org/property-tax/delinquent-taxes/,1,pdf,y,,2026-06-04,Direct PDF; first/middle/last name columns
+Clayton,GA,Tax Commissioner,https://www.claytoncountyga.gov/government/tax-commissioner/,1,pdf,y,,2026-06-30,Direct PDF via publicaccess portal
+Henry,GA,Tax Commissioner,https://www.henrycountytax.com/239/EXCESS-FUNDS,1,pdf,y,,2026-07-14,Direct PDF; skip REDEEMED rows
+Chatham,GA,Tax Commissioner,https://tax.chathamcountyga.gov/ExcessFunds,3,pdf,partial,,2026-06-30,DEFERRED: File Name column often legal in-rem description not owner name; heavy wrapping
+Fulton,GA,Sheriff,https://fcsoga.org/help-category/list-of-excess-tax-funds/,3,records-request,n,,2026-07-14,DEFERRED: sheriff interpleads all to Superior Court; list by records request; no owner names
