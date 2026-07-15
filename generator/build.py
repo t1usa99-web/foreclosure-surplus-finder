@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 """Build the static site from data/counties/*.json.
 Usage: python generator/build.py   (run from repo root)"""
-import os, sys, glob, json, html
+import os, sys, glob, json
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 from template import render_county_page, _money
+import sitegen
 import config
 
 DATA = os.path.join(ROOT, "data", "counties")
 OUT = os.path.join(ROOT, "site")
+STATE_NAMES = {"georgia": "Georgia", "florida": "Florida", "california": "California"}
 
 
 def write(path, text):
@@ -21,57 +23,69 @@ def write(path, text):
 
 
 def main():
-    counties = []
+    SITE = config.SITE_URL
+    BRAND = config.BRAND
+    counties = []          # raw county dicts
+    urls = []              # (loc, lastmod) for sitemap
+
     for fp in sorted(glob.glob(os.path.join(DATA, "*.json"))):
         c = json.load(open(fp, encoding="utf-8"))
-        page = render_county_page(c, config.BRAND, config.SITE_URL)
-        out = os.path.join(OUT, c["state_slug"], c["slug"], "index.html")
-        write(out, page)
-        total = sum(r["overage"] for r in c["records"])
-        counties.append((c, total))
+        page = render_county_page(c, BRAND, SITE)
+        write(os.path.join(OUT, c["state_slug"], c["slug"], "index.html"), page)
+        c["_records"] = len(c["records"])
+        c["_total"] = sum(r["overage"] for r in c["records"])
+        counties.append(c)
+        urls.append(("{}/{}/{}/".format(SITE, c["state_slug"], c["slug"]), c["updated"]))
         print("built /{}/{}/  ({} records, {})".format(
-            c["state_slug"], c["slug"], len(c["records"]), _money(total)))
+            c["state_slug"], c["slug"], c["_records"], _money(c["_total"])))
 
-    # sitemap.xml
-    urls = "".join(
-        "  <url><loc>{}/{}/{}/</loc><lastmod>{}</lastmod></url>\n".format(
-            config.SITE_URL, c["state_slug"], c["slug"], c["updated"])
-        for c, _ in counties)
-    sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-               + '  <url><loc>{}/</loc></url>\n'.format(config.SITE_URL) + urls + "</urlset>\n")
-    write(os.path.join(OUT, "sitemap.xml"), sitemap)
+    # group into states
+    states = []
+    for slug in sorted(set(c["state_slug"] for c in counties)):
+        cs = [c for c in counties if c["state_slug"] == slug]
+        states.append({
+            "name": STATE_NAMES.get(slug, cs[0]["state"]), "slug": slug,
+            "counties": [{"slug": c["slug"], "county": c["county"], "state_abbr": c["state_abbr"],
+                          "records": c["_records"], "total": c["_total"]} for c in cs],
+        })
 
-    # robots.txt
+    totals = (len(counties), sum(c["_records"] for c in counties), sum(c["_total"] for c in counties))
+
+    # home
+    write(os.path.join(OUT, "index.html"), sitegen.render_home(BRAND, SITE, states, totals))
+    urls.append((SITE + "/", None))
+
+    # state hubs
+    for s in states:
+        write(os.path.join(OUT, s["slug"], "index.html"), sitegen.render_state_hub(BRAND, SITE, s))
+        urls.append(("{}/{}".format(SITE, s["slug"]), None))
+
+    # trust pages
+    trust = {"about": sitegen.render_about, "contact": sitegen.render_contact,
+             "privacy": sitegen.render_privacy, "terms": sitegen.render_terms,
+             "disclaimer": sitegen.render_disclaimer}
+    for slug, fn in trust.items():
+        write(os.path.join(OUT, slug, "index.html"), fn(BRAND, SITE))
+        urls.append(("{}/{}".format(SITE, slug), None))
+
+    # sitemap
+    sm = ['<?xml version="1.0" encoding="UTF-8"?>',
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, lastmod in urls:
+        sm.append("  <url><loc>{}</loc>{}</url>".format(
+            loc, "<lastmod>{}</lastmod>".format(lastmod) if lastmod else ""))
+    sm.append("</urlset>")
+    write(os.path.join(OUT, "sitemap.xml"), "\n".join(sm) + "\n")
     write(os.path.join(OUT, "robots.txt"),
-          "User-agent: *\nAllow: /\nSitemap: {}/sitemap.xml\n".format(config.SITE_URL))
+          "User-agent: *\nAllow: /\nSitemap: {}/sitemap.xml\n".format(SITE))
 
-    # simple homepage index
-    items = "\n".join(
-        '   <li><a href="/{}/{}/">{}, {}</a> ({} records, {} in surplus)</li>'.format(
-            c["state_slug"], c["slug"], html.escape(c["county"]), c["state_abbr"],
-            len(c["records"]), _money(t))
-        for c, t in counties)
-    index = ("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
-             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-             "<title>{brand}: County Tax Sale Surplus Funds</title>"
-             "<meta name=\"description\" content=\"Search county tax-sale surplus and excess funds lists. "
-             "See if you are owed money and how to claim it free.\">"
-             "<link rel=\"canonical\" href=\"{site}/\"></head>"
-             "<body style=\"font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:820px;"
-             "margin:40px auto;padding:0 20px;color:#1a2230\">"
-             "<h1>{brand}</h1><p>Public-record tax-sale surplus funds, organized by county. "
-             "Find out if you are owed money, and claim it yourself for free.</p>"
-             "<h2>Counties</h2><ul>\n{items}\n</ul></body></html>").format(
-                 brand=html.escape(config.BRAND), site=config.SITE_URL, items=items)
-    write(os.path.join(OUT, "index.html"), index)
-
-    # guards
+    # guard: no em dash anywhere in generated HTML
     joined = "".join(open(os.path.join(dp, f), encoding="utf-8").read()
                      for dp, _, fs in os.walk(OUT) for f in fs if f.endswith(".html"))
-    for _bad in ("—", "&mdash;", "&#8212;"):
-        assert _bad not in joined, "em dash form found in generated HTML: " + _bad
-    print("\nOK: {} county page(s), sitemap.xml, robots.txt, index.html. No em dashes.".format(len(counties)))
+    for bad in ("—", "&mdash;", "&#8212;"):
+        assert bad not in joined, "em dash form found in generated HTML: " + bad
+    print("\nOK: {} counties, {} states, {} trust pages, home, sitemap. No em dashes.".format(
+        len(counties), len(states), len(trust)))
 
 
 if __name__ == "__main__":
