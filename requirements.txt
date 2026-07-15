@@ -1,0 +1,3 @@
+# Stdlib-only generator. Harvesting extras:
+# poppler-utils (pdftotext) is a system package, install via apt.
+requests>=2.31

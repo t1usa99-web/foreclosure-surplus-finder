@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+# Generated static output is a build artifact; Cloudflare Pages runs `python generator/build.py`.
+site/

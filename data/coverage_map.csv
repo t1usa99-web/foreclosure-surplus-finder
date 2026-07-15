@@ -1,0 +1,7 @@
+county,state,holding_office,source_url,tier,format,has_owner_names,co_located_types,last_checked,notes
+Coweta,GA,Tax Commissioner,https://www.cowetataxcom.com/resources/sites/cowetacountyga/docs/Excess%20Funds%20List.pdf,1,pdf,y,,2026-07-14,Full owner+buyer+overage+status
+Hall,GA,Tax Commissioner,https://hallcountytax.org/property/excess-funds/,2,html-linked-pdf,y,outstanding-check-list,2026-07-14,HTML links dated PDF; also outstanding check list
+Cobb,GA,Tax Commissioner,https://www.cobbtax.gov/property/delinquent_taxes/index.php,2,html-linked-pdf,y,,2026-07-14,Interpled to Superior Court per policy
+Gwinnett,GA,Tax Commissioner,https://www.gwinnetttaxcommissioner.com/property-tax/tax-sale-excess-funds,2,html-linked,y,unclaimed-refunds,2026-07-14,Also unclaimed refunds page
+Osceola,FL,Clerk of Court,https://courts.osceolaclerk.com/reports/TaxDeedsSurplusFundsAvailableWeb.pdf,1,pdf,n,,2026-07-14,No owner names; needs parcel to owner enrichment
+Los Angeles,CA,Treasurer-Tax Collector,https://ttc.lacounty.gov/notice-of-excess-proceeds/,2,html-linked,y,,2026-07-14,Multi-year EP listing downloads
