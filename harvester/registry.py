@@ -22,4 +22,6 @@ COUNTIES = [
      "url": "https://publicaccess.claytoncountyga.gov/content/PDF/DQ759GA.pdf"},
     {"slug": "henry-county-ga", "method": "direct", "kind": "pdf", "parser": "henry", "auto": True,
      "url": "https://www.henrycountytax.com/DocumentCenter/View/296/Excess-Funds-List"},
+    {"slug": "athens-clarke-county-ga", "method": "direct", "kind": "pdf", "parser": "athens", "auto": True,
+     "url": "https://www.accgov.com/DocumentCenter/View/16566"},
 ]

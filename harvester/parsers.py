@@ -220,5 +220,38 @@ def henry(text):
     return out
 
 
+# ---------------- ATHENS-CLARKE (direct pdf) ----------------
+def athens(text):
+    dstart = re.compile(r'^(\d{1,2}/\d{1,2}/\d{4})\b')
+    out = []
+    for line in text.split("\n"):
+        s = line.strip()
+        m = dstart.match(s)
+        if not m:
+            continue
+        amts = MONEY.findall(s)
+        if len(amts) < 4:   # BID, TAXES, EXCESS, (CLAIMED), BALANCE
+            continue
+        balance = _f(amts[-1])
+        if balance <= 0:
+            continue
+        partial = "(" in s   # a claimed amount is shown in parentheses
+        f = [x for x in re.split(r"\s{2,}", s) if x]
+        owner = f[1] if len(f) > 1 else ""
+        propdesc = f[2] if len(f) > 2 else ""
+        if not propdesc or propdesc.startswith("$"):
+            continue   # columns did not separate cleanly (e.g. a defendant name containing a slash)
+        if " / " in propdesc:
+            addr, parcel = propdesc.rsplit(" / ", 1)
+        else:
+            addr, parcel = propdesc, ""
+        if not owner:
+            continue
+        out.append(dict(sale_date=m.group(1), parcel=parcel.strip(), previous_owner=owner.strip(),
+                        property_address=addr.strip(), overage=round(balance, 2),
+                        status="Partially claimed" if partial else "Unclaimed"))
+    return out
+
+
 PARSERS = {"coweta": coweta, "hall": hall, "gwinnett": gwinnett, "cobb": cobb,
-           "dekalb": dekalb, "clayton": clayton, "henry": henry}
+           "dekalb": dekalb, "clayton": clayton, "henry": henry, "athens": athens}
