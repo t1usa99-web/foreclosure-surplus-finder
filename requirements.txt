@@ -1,3 +1,5 @@
-# Stdlib-only generator. Harvesting extras:
-# poppler-utils (pdftotext) is a system package, install via apt.
+# Site generator uses only the Python standard library.
+# The harvester (harvester/run.py) needs these:
 requests>=2.31
+openpyxl>=3.1
+# poppler-utils (pdftotext) is a system package; install via apt in CI.

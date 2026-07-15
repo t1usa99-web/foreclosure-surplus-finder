@@ -4,3 +4,7 @@ __pycache__/
 .venv/
 # Generated static output is a build artifact; Cloudflare Pages runs `python generator/build.py`.
 site/
+
+# Harvester transient output
+harvester/last_run.json
+harvester/__pycache__/
