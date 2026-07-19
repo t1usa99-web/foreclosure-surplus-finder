@@ -56,6 +56,28 @@ def sane(slug, records):
     return problems
 
 
+def fetch_records(cfg, firecrawl_budget):
+    """Resolve + download + parse one county. Returns (records, firecrawl_consumed)."""
+    consumed = 0
+    if cfg["method"] == "firecrawl":
+        key = os.environ.get("FIRECRAWL_API_KEY")
+        if not key:
+            raise RuntimeError("__skip__ firecrawl: no FIRECRAWL_API_KEY")
+        if firecrawl_budget <= 0:
+            raise RuntimeError("__skip__ firecrawl: budget reached")
+        consumed = 1
+        file_url = adapters.firecrawl_resolve_file_url(cfg, key)
+    else:
+        file_url = adapters.resolve_file_url(cfg)
+    data = adapters.fetch_bytes(file_url)
+    if cfg["kind"] == "xlsx":
+        records = parsers.PARSERS[cfg["parser"]](adapters.xlsx_rows(data))
+    else:
+        records = parsers.PARSERS[cfg["parser"]](adapters.pdf_to_text(data))
+    records.sort(key=lambda r: -r["overage"])
+    return records, consumed
+
+
 def main():
     state = load_state()
     firecrawl_used = 0
@@ -64,23 +86,9 @@ def main():
     for cfg in registry.COUNTIES:
         slug = cfg["slug"]
         try:
-            if cfg["method"] == "firecrawl":
-                if not os.environ.get("FIRECRAWL_API_KEY") or firecrawl_used >= MAX_FIRECRAWL:
-                    skipped.append(slug + " (firecrawl skipped: no key or budget reached)")
-                    continue
-                firecrawl_used += 1
-                # firecrawl adapter would go here for JS-rendered counties
-                skipped.append(slug + " (firecrawl adapter not yet implemented)")
-                continue
+            records, consumed = fetch_records(cfg, MAX_FIRECRAWL - firecrawl_used)
+            firecrawl_used += consumed
 
-            file_url = adapters.resolve_file_url(cfg)
-            data = adapters.fetch_bytes(file_url)
-            if cfg["kind"] == "xlsx":
-                records = parsers.PARSERS[cfg["parser"]](adapters.xlsx_rows(data))
-            else:
-                records = parsers.PARSERS[cfg["parser"]](adapters.pdf_to_text(data))
-            records.sort(key=lambda r: -r["overage"])
-            # change-detection on the normalized data (robust to spurious file-byte changes)
             h = hashlib.sha256(json.dumps(records, ensure_ascii=False).encode("utf-8")).hexdigest()
             if state.get(slug) == h and cfg.get("auto"):
                 skipped.append(slug + " (unchanged)")
@@ -101,7 +109,9 @@ def main():
             changed.append("{}: {} records, ${:,.2f}".format(slug, len(records), total))
         except Exception as e:
             msg = "%s: %s" % (slug, e)
-            if "link not found" in str(e) or "HTTPError" in type(e).__name__ or "Timeout" in type(e).__name__ or "Connection" in type(e).__name__:
+            if "__skip__" in str(e):
+                skipped.append("%s (%s)" % (slug, str(e).split("__skip__", 1)[1].strip()))
+            elif "link not found" in str(e) or "HTTPError" in type(e).__name__ or "Timeout" in type(e).__name__ or "Connection" in type(e).__name__:
                 skipped.append(msg + " (fetch/link issue, kept existing data)")
             else:
                 errored.append(msg); traceback.print_exc()
@@ -114,7 +124,6 @@ def main():
         for it in items:
             print("  - " + it)
 
-    # write a machine-readable summary for the PR body
     open(os.path.join(HERE, "last_run.json"), "w").write(json.dumps(
         {"date": TODAY, "changed": changed, "skipped": skipped, "warnings": warned, "errors": errored}, indent=1))
     if errored:

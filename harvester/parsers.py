@@ -13,8 +13,19 @@ def _f(x):
     return float(x.replace(",", ""))
 
 
+def _iso(d):
+    """M/D/YYYY -> YYYY-MM-DD (passthrough if not that shape)."""
+    m = re.match(r'^(\d{1,2})/(\d{1,2})/(\d{4})$', d.strip())
+    if not m:
+        return d.strip()
+    mo, da, yr = m.groups()
+    return "%04d-%02d-%02d" % (int(yr), int(mo), int(da))
+
+
 # ---------------- COWETA (direct pdf) ----------------
 def coweta(text):
+    """Columns: Sale Date | Map # | Property Owner | Buyer | Minimum Bid | Sale Amt | Overage | Status.
+    Owner/buyer/map# are space-padded columns; the three money amounts anchor the right side."""
     dstart = re.compile(r'^(\d{1,2}/\d{1,2}/\d{4})\b')
     out = []
     for line in text.split("\n"):
@@ -25,17 +36,31 @@ def coweta(text):
         matches = list(MONEY.finditer(s))
         if len(matches) < 3:
             continue
-        overage = _f(matches[2].group(1))   # columns: minimum bid, sale amount, overage
-        after = s[matches[2].end():].strip()
-        status = after if after else "Unclaimed"
-        head = s[m.end():s.find("$")].strip() if "$" in s else ""
-        parts = [p for p in re.split(r"\s{2,}", head) if p]
-        parcel = parts[0] if parts else ""
-        owner = parts[1] if len(parts) > 1 else ""
+        min_bid = _f(matches[0].group(1))
+        sale_amount = _f(matches[1].group(1))
+        overage = _f(matches[2].group(1))
+        status = s[matches[2].end():].strip() or "Unclaimed"
+        middle = s[m.end():matches[0].start()].strip()
+        parts = [p for p in re.split(r"\s{2,}", middle) if p]
+        if len(parts) >= 3:
+            parcel, buyer, owner = parts[0], parts[-1], " ".join(parts[1:-1])
+        elif len(parts) == 2:
+            # map# and owner collapsed (single-spaced); split at first pure-alpha token
+            toks = parts[0].split()
+            i = 0
+            while i < len(toks) and (any(c.isdigit() for c in toks[i]) or "-" in toks[i]):
+                i += 1
+            parcel, owner, buyer = " ".join(toks[:i]), " ".join(toks[i:]), parts[1]
+        else:
+            parcel, owner, buyer = "", (parts[0] if parts else ""), ""
+        if owner.count("(") > owner.count(")"):
+            owner = owner + ")"   # close truncated "(LIFE ESTATE)" style notes
         if not owner or overage <= 0:
             continue
-        out.append(dict(sale_date=m.group(1), parcel=parcel, previous_owner=owner,
-                        property_address="", overage=round(overage, 2), status=status))
+        out.append(dict(sale_date=_iso(m.group(1)), parcel=parcel.strip(),
+                        previous_owner=owner.strip(), buyer=buyer.strip(),
+                        min_bid=round(min_bid, 2), sale_amount=round(sale_amount, 2),
+                        overage=round(overage, 2), status=status))
     return out
 
 
@@ -139,10 +164,12 @@ def cobb(rows):
         if ov <= 0:
             continue
         d = r[idx["Date of Sale"]]
-        sd = d.strftime("%b %-d, %Y") if isinstance(d, datetime.datetime) else (str(d) if d else "")
+        sd = d.strftime("%Y-%m-%d") if isinstance(d, datetime.datetime) else (str(d) if d else "")
         pend = str(r[idx.get("Pending Claim", -1)]).strip().lower() if "Pending Claim" in idx else "no"
         out.append(dict(sale_date=sd, parcel=str(r[idx["Parcel ID"]] or "").strip(),
-                        previous_owner=str(r[idx["Owner"]]).strip(), property_address="",
+                        previous_owner=str(r[idx["Owner"]]).strip(),
+                        buyer=str(r[idx.get("Purchaser", -1)] or "").strip() if "Purchaser" in idx else "",
+                        property_address="",
                         overage=round(ov, 2), status="Claim pending" if pend == "yes" else "Unclaimed"))
     return out
 
