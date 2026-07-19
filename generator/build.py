@@ -27,6 +27,7 @@ def main():
     BRAND = config.BRAND
     counties = []          # raw county dicts
     urls = []              # (loc, lastmod) for sitemap
+    index = []             # site-wide search index (one entry per record)
 
     for fp in sorted(glob.glob(os.path.join(DATA, "*.json"))):
         c = json.load(open(fp, encoding="utf-8"))
@@ -36,6 +37,11 @@ def main():
         c["_total"] = sum(r["overage"] for r in c["records"])
         counties.append(c)
         urls.append(("{}/{}/{}/".format(SITE, c["state_slug"], c["slug"]), c["updated"]))
+        cu = "/{}/{}/".format(c["state_slug"], c["slug"])
+        for r in c["records"]:
+            index.append({"n": r["previous_owner"].title(), "c": c["county"],
+                          "a": c["state_abbr"], "u": cu,
+                          "o": round(r["overage"], 2), "s": r.get("status", "Unclaimed")})
         print("built /{}/{}/  ({} records, {})".format(
             c["state_slug"], c["slug"], c["_records"], _money(c["_total"])))
 
@@ -50,6 +56,11 @@ def main():
         })
 
     totals = (len(counties), sum(c["_records"] for c in counties), sum(c["_total"] for c in counties))
+
+    # site-wide search index (sorted biggest overage first so top matches are meaningful)
+    index.sort(key=lambda e: -e["o"])
+    write(os.path.join(OUT, "search-index.json"),
+          json.dumps(index, ensure_ascii=False, separators=(",", ":")))
 
     # home
     write(os.path.join(OUT, "index.html"), sitegen.render_home(BRAND, SITE, states, totals))
@@ -84,8 +95,8 @@ def main():
                      for dp, _, fs in os.walk(OUT) for f in fs if f.endswith(".html"))
     for bad in ("—", "&mdash;", "&#8212;"):
         assert bad not in joined, "em dash form found in generated HTML: " + bad
-    print("\nOK: {} counties, {} states, {} trust pages, home, sitemap. No em dashes.".format(
-        len(counties), len(states), len(trust)))
+    print("\nOK: {} counties, {} states, {} trust pages, home, sitemap, {} search records. No em dashes.".format(
+        len(counties), len(states), len(trust), len(index)))
 
 
 if __name__ == "__main__":

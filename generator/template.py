@@ -61,7 +61,7 @@ def render_county_page(c, brand, site_url):
             '        <td>{d}</td>\n'
             '        <td><span class="badge {b}">{s}</span></td>\n'
             '      </tr>'.format(
-                ol=html.escape(r["previous_owner"].lower()), b=badge,
+                ol=html.escape((r["previous_owner"] + " " + r["parcel"]).lower()), b=badge,
                 o=html.escape(r["previous_owner"].title()), ov=_money(r["overage"]),
                 p=html.escape(r["parcel"]), opt=optcell, d=_nice_date(r["sale_date"]),
                 s=html.escape(status)))
@@ -237,6 +237,7 @@ def render_county_page(c, brand, site_url):
 (function(){{
  var q=document.getElementById('q'),tbl=document.getElementById('tbl'),
      rows=[].slice.call(tbl.tBodies[0].rows),count=document.getElementById('count');
+ var pq=(new URLSearchParams(location.search)).get('q'); if(pq){{ q.value=pq; }}
  function upd(){{
   var t=q.value.trim().toLowerCase(),shown=0;
   rows.forEach(function(r){{

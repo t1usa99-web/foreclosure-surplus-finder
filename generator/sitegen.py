@@ -71,6 +71,15 @@ details.faq p{color:var(--muted);margin:.5em 0 0}
 .footbrand{font-weight:800;color:#fff;font-size:18px}
 .footnote{border-top:1px solid #2a3a34;margin-top:26px;padding-top:18px;color:#8ea39b;font-size:12.5px;line-height:1.6}
 @media(max-width:720px){.footcols{grid-template-columns:1fr 1fr}}
+.search{position:relative;max-width:560px;margin:6px 0 22px}
+.search input{width:100%;padding:15px 16px;border:1.5px solid var(--brand);border-radius:10px;font-size:17px}
+.results{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(20,40,34,.12);margin-top:6px;max-height:360px;overflow:auto;z-index:30}
+.results a{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.results a:last-child{border-bottom:0}
+.results a:hover{background:var(--soft)}
+.results .nm{font-weight:600}
+.results .mt{font-size:13px;color:var(--muted);white-space:nowrap}
+.results .empty{padding:12px 14px;color:var(--muted);font-size:14px}
 """
 
 
@@ -195,8 +204,12 @@ def render_home(brand, site, states, totals):
     body = """<main>
 <section class="hero"><div class="wrap">
   <h1>Are you owed unclaimed surplus funds?</h1>
-  <p class="lede">When a home is sold at a county tax sale for more than the taxes owed, the extra money belongs to the former owner. Billions of dollars sit unclaimed. Search your county's list and claim what is yours, for free.</p>
-  <div class="cta-row"><a class="btn" href="{site}/georgia">Browse Georgia counties</a><a class="btn ghost" href="#how">How it works</a></div>
+  <p class="lede">When a home is sold at a county tax sale for more than the taxes owed, the extra money belongs to the former owner. Billions of dollars sit unclaimed. Search your name below, or browse by county, and claim what is yours, for free.</p>
+  <div class="search">
+    <input type="search" id="namesearch" placeholder="Search your name across all counties..." aria-label="Search all counties by owner name" autocomplete="off">
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="cta-row"><a class="btn" href="#browse">Browse by county</a><a class="btn ghost" href="#how">How it works</a></div>
   <div class="stats">
     <div class="stat"><b>{nc}</b><span>counties tracked</span></div>
     <div class="stat"><b>{nr}</b><span>surplus records</span></div>
@@ -225,9 +238,9 @@ def render_home(brand, site, states, totals):
   </div>
 </div></section>
 
-<section class="band"><div class="wrap">
+<section class="band" id="browse"><div class="wrap">
   <h2>Browse surplus funds by county</h2>
-  <p class="sub">Currently covering {nc} Georgia counties, with more on the way. {stlinks}</p>
+  <p class="sub">Currently covering {nc} counties, with more on the way. {stlinks}</p>
   <div class="counties">
 {counties}
   </div>
@@ -237,6 +250,34 @@ def render_home(brand, site, states, totals):
   <h2>Frequently asked questions</h2>
 {faq}
 </div></section>
+<script>
+(function(){{
+ var inp=document.getElementById('namesearch'),box=document.getElementById('results'),data=null,loading=false;
+ function money(n){{return '$'+Number(n).toLocaleString('en-US',{{minimumFractionDigits:2,maximumFractionDigits:2}});}}
+ function esc(s){{return String(s).replace(/[&<>"]/g,function(c){{return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c];}});}}
+ function render(q){{
+  var t=q.toLowerCase(),out=[],i,e,seen=0;
+  for(i=0;i<data.length&&seen<20;i++){{
+   e=data[i];
+   if(e.n.toLowerCase().indexOf(t)>-1){{
+    seen++;
+    out.push('<a href="'+e.u+'?q='+encodeURIComponent(e.n)+'#list"><span class="nm">'+esc(e.n)+'</span><span class="mt">'+esc(e.c)+', '+e.a+' &middot; '+money(e.o)+'</span></a>');
+   }}
+  }}
+  if(!out.length){{out.push('<div class="empty">No matching names found. Try a last name only, or browse by county below.</div>');}}
+  box.innerHTML=out.join('');box.hidden=false;
+ }}
+ function onInput(){{
+  var q=inp.value.trim();
+  if(q.length<2){{box.hidden=true;box.innerHTML='';return;}}
+  if(data){{render(q);return;}}
+  if(loading){{return;}} loading=true;
+  fetch('/search-index.json').then(function(r){{return r.json();}}).then(function(j){{data=j;render(inp.value.trim());}}).catch(function(){{loading=false;}});
+ }}
+ inp.addEventListener('input',onInput);
+ document.addEventListener('click',function(ev){{if(!box.contains(ev.target)&&ev.target!==inp){{box.hidden=true;}}}});
+}})();
+</script>
 </main>""".format(site=site, nc=n_counties, nr="{:,}".format(n_records), tot=_money(total),
                   stlinks=state_links, counties=counties_html, faq=faq_html)
 
