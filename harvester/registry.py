@@ -25,4 +25,6 @@ COUNTIES = [
      "url": "https://www.henrycountytax.com/DocumentCenter/View/296/Excess-Funds-List"},
     {"slug": "athens-clarke-county-ga", "method": "direct", "kind": "pdf", "parser": "athens", "auto": True,
      "url": "https://www.accgov.com/DocumentCenter/View/16566"},
+    {"slug": "volusia-county-fl", "method": "direct", "kind": "pdf", "parser": "volusia", "auto": True,
+     "url": "https://www.clerk.org/pdf/user_publish/TaxDeeds/Tax_Deed_Surplus_List.pdf"},
 ]

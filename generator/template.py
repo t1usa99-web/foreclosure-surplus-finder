@@ -81,16 +81,16 @@ def render_county_page(c, brand, site_url):
           "along with a valid photo ID, at {}. Include supporting documents such as deeds, assignments, "
           "or powers of attorney.").format(claim_form_line, c["holding_office"], c["office_address"])),
         ("How long do I have to claim surplus funds in {}?".format(state),
-         ("In {}, tax-sale excess funds are generally held by the county for up to {} years before they "
-          "transfer to the state unclaimed property division. Claiming sooner is always better.").format(
-              state, c.get("hold_years", 5))),
+         "In {}, {}".format(state, c.get("claim_window_text") or
+          ("tax-sale excess funds are generally held by the county for up to {} years before they transfer "
+           "to the state unclaimed property division. Claiming sooner is always better.".format(c.get("hold_years", 5))))),
         ("Do I have to pay a recovery company to claim my money?",
          ("No. You can file a claim directly with the county for free. Recovery firms and attorneys can "
           "handle the paperwork for a fee (commonly 10% to 30%), which some owners prefer for estate, "
           "lien, or interpleader situations, but it is never required.")),
         ("What does \"interpleader filed\" mean on the list?",
          ("When there are competing or conflicting claims, the county may file an interpleader action with "
-          "the Superior Court, and a judge decides how the funds are distributed. Reasonable attorney fees "
+          "the court, and a judge decides how the funds are distributed. Reasonable attorney fees "
           "and court costs are paid from the excess funds first.")),
     ]
     faq_html = "\n".join(
@@ -212,7 +212,7 @@ def render_county_page(c, brand, site_url):
   </tbody>
  </table>
  </div>
- <p class="sub">Source: {office}, Excess Funds List. Amounts are the county-published overage at time of sale; balances change as claims are paid. Verify current status with the county before filing.</p>
+ <p class="sub">Source: {office} published list. Amounts are the county-published surplus at time of sale; balances change as claims are paid. Verify current status with the county before filing.</p>
  <h2 id="claim">How to claim excess funds in {county}</h2>
  <ol class="steps">
   <li><strong>Confirm you are on the list.</strong> Find your name (or the prior owner's, if you are an heir) in the table above and note the parcel and sale date.</li>
@@ -221,7 +221,7 @@ def render_county_page(c, brand, site_url):
   <li><strong>Submit to the {office}</strong> at {addr}.</li>
   <li><strong>Respond to any follow-up.</strong> Claims are reviewed by counsel; you may be asked for additional documentation before disbursement.</li>
  </ol>
- <div class="callout"><strong>Competing claims?</strong> If more than one party claims the same funds, the county may file an <em>interpleader</em> with the Superior Court, and a judge decides. Reasonable attorney fees and court costs are paid from the excess funds first.</div>
+ <div class="callout"><strong>Competing claims?</strong> If more than one party claims the same funds, the county may file an <em>interpleader</em> with the court, and a judge decides. Reasonable attorney fees and court costs are paid from the excess funds first.</div>
  <h2>Do it yourself, or get help?</h2>
  <p>Most straightforward owner claims can be filed directly with the county for <strong>free</strong>, and you never have to pay anyone to get your own money. For estates, tangled liens, out-of-state heirs, or interpleader cases, some people prefer a surplus-recovery specialist or attorney who handles the paperwork for a fee (commonly 10% to 30%).</p>
  <div class="cta-row">

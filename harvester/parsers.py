@@ -280,5 +280,39 @@ def athens(text):
     return out
 
 
+# ---------------- VOLUSIA (direct pdf, FL tax-deed surplus) ----------------
+def volusia(text):
+    """FL clerk 'Tax Deed Surplus' sheet. Owner names wrap across lines; the row's date
+    sits on the last line. We key on the trailing 'remaining balance + remit date'."""
+    dstart = re.compile(r'^(\d{1,2}/\d{1,2}/\d{4})\b')
+    cert = re.compile(r'\b(\d{2,5}-\d{2})\b')
+    tail = re.compile(r'([\d,]+\.\d{2}|-)\s+\d{1,2}/\d{1,2}/\d{4}\s*$')
+    namey = re.compile(r"^[A-Z0-9 ./&'\-]+$")
+    out, buf = [], []
+    for raw in text.split("\n"):
+        st = raw.strip()
+        m = dstart.match(st)
+        if m:
+            tm = tail.search(st); cm = cert.search(st)
+            if not tm or not cm:
+                buf = []; continue
+            remaining = 0.0 if tm.group(1) == "-" else _f(tm.group(1))
+            owner = re.sub(r"\s{2,}", " ", " ".join(buf + [st[m.end():cm.start()].strip()]).strip())
+            buf = []
+            if remaining <= 0 or not owner:
+                continue
+            out.append(dict(sale_date=_iso(m.group(1)), parcel=cm.group(1), previous_owner=owner,
+                            property_address="", overage=round(remaining, 2), status="Unclaimed"))
+        elif not st:
+            buf = []
+        else:
+            if ("CLERK OF THE CIRCUIT" not in st and "TAX DEED SURPLUS" not in st and namey.match(st)
+                    and not cert.search(st) and not re.search(r'\d{1,3}(,\d{3})*\.\d{2}', st)
+                    and sum(c.isalpha() for c in st) >= 3):
+                buf.append(st)
+            else:
+                buf = []
+    return out
+
 PARSERS = {"coweta": coweta, "hall": hall, "gwinnett": gwinnett, "cobb": cobb,
-           "dekalb": dekalb, "clayton": clayton, "henry": henry, "athens": athens}
+           "dekalb": dekalb, "clayton": clayton, "henry": henry, "athens": athens, "volusia": volusia}
