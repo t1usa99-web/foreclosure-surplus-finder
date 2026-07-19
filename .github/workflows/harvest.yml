@@ -1,0 +1,57 @@
+name: Harvest county surplus funds
+
+on:
+  schedule:
+    - cron: "0 8 1 * *"   # 08:00 UTC on the 1st of each month
+  workflow_dispatch: {}    # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Install Python deps
+        run: pip install requests openpyxl
+      - name: Run harvester
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          MAX_FIRECRAWL: "5"
+        run: python harvester/run.py
+      - name: Build PR body
+        id: body
+        run: |
+          echo "text<<EOF" >> "$GITHUB_OUTPUT"
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          p = "harvester/last_run.json"
+          d = json.load(open(p)) if os.path.exists(p) else {}
+          print("Automated county surplus-funds refresh on", d.get("date", "unknown") + ".")
+          print()
+          for label in ("changed", "warnings", "skipped", "errors"):
+              items = d.get(label, [])
+              print("### %s (%d)" % (label.capitalize(), len(items)))
+              for it in items:
+                  print("- " + it)
+              print()
+          print("Review the data diff below before merging. Merging triggers a Cloudflare Pages rebuild.")
+          PY
+          echo "EOF" >> "$GITHUB_OUTPUT"
+      - name: Open pull request if data changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: harvest/auto-refresh
+          delete-branch: true
+          title: "Monthly surplus funds refresh"
+          body: ${{ steps.body.outputs.text }}
+          add-paths: |
+            data/counties/*.json
+            harvester/state.json
