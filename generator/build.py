@@ -14,6 +14,14 @@ import config
 DATA = os.path.join(ROOT, "data", "counties")
 OUT = os.path.join(ROOT, "site")
 STATE_NAMES = {"georgia": "Georgia", "florida": "Florida", "california": "California"}
+STATE_LAW = {
+    "georgia": {"office": "county tax commissioner", "window_short": "5 yrs",
+                "window": "held by the county for up to five years, after which unclaimed funds transfer to the Georgia unclaimed property program and become harder to recover, so claiming sooner is always better."},
+    "florida": {"office": "Clerk of the Circuit Court", "window_short": "1-2 yrs",
+                "window": "held by the Clerk of the Circuit Court, which notifies parties of interest. Unclaimed surplus is later reported to the Florida Department of Financial Services as unclaimed property, so it is important to claim promptly."},
+    "california": {"office": "county tax collector", "window_short": "1 yr",
+                   "window": "held by the county tax collector, and under California Revenue and Taxation Code section 4675 a claim generally must be filed within one year of the tax deed being recorded, so acting quickly is essential."},
+}
 
 
 def write(path, text):
@@ -53,6 +61,7 @@ def main():
             "name": STATE_NAMES.get(slug, cs[0]["state"]), "slug": slug,
             "counties": [{"slug": c["slug"], "county": c["county"], "state_abbr": c["state_abbr"],
                           "records": c["_records"], "total": c["_total"]} for c in cs],
+            "law": STATE_LAW.get(slug, STATE_LAW["georgia"]),
         })
 
     totals = (len(counties), sum(c["_records"] for c in counties), sum(c["_total"] for c in counties))

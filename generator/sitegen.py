@@ -302,13 +302,13 @@ def render_state_hub(brand, site, state):
     bc = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": site + "/"},
         {"@type": "ListItem", "position": 2, "name": name + " Surplus Funds", "item": canonical}]}
+    law = state.get("law") or {"office": "county tax office", "window_short": "varies",
+                               "window": "held by the county for several years before unclaimed funds transfer to the state, so claiming sooner is always better."}
     faq = [
-        ("How long do I have to claim excess funds in " + name + "?",
-         "In " + name + ", tax-sale excess funds are generally held by the county for up to five years. After "
-         "that, unclaimed funds are transferred to the state and can be harder to recover, so claiming sooner "
-         "is always better."),
-        ("Who holds excess funds in " + name + "?",
-         "In " + name + ", tax-sale excess funds are usually held by the county tax commissioner until a valid "
+        ("How long do I have to claim surplus funds in " + name + "?",
+         "In " + name + ", tax-sale surplus is " + law["window"]),
+        ("Who holds surplus funds in " + name + "?",
+         "In " + name + ", tax-sale surplus is usually held by the " + law["office"] + " until a valid "
          "claim is filed and approved. Each county page lists the office and address for that county."),
     ]
     faq_ld = {"@context": "https://schema.org", "@type": "FAQPage",
@@ -325,17 +325,17 @@ def render_state_hub(brand, site, state):
   <div class="stat"><b>{nc}</b><span>counties covered</span></div>
   <div class="stat"><b>{nr}</b><span>surplus records</span></div>
   <div class="stat"><b>{tot}</b><span>total surplus</span></div>
-  <div class="stat"><b>5 yrs</b><span>typical claim window</span></div>
+  <div class="stat"><b>{winshort}</b><span>typical claim window</span></div>
 </div>
 <h2 style="margin-top:34px">Counties</h2>
 <div class="counties">
 {rows}
 </div>
-<div class="callout">More {name} counties are being added. If your county is not listed yet, you can still request its excess funds list directly from that county's tax commissioner.</div>
+<div class="callout">More {name} counties are being added. If your county is not listed yet, you can still request its excess funds list directly from that county's tax office.</div>
 <h2 style="margin-top:30px">Frequently asked questions</h2>
 {faq}
 </main>""".format(site=site, name=html.escape(name), nc=len(counties),
-                  nr="{:,}".format(records), tot=_money(total), rows=rows, faq=faq_html)
+                  nr="{:,}".format(records), tot=_money(total), rows=rows, faq=faq_html, winshort=law["window_short"])
 
     return page("{} Excess Funds List by County: Unclaimed Tax Sale Surplus Funds".format(name),
                 "See unclaimed {} tax-sale surplus and excess funds by county. {} counties, {} totaling {}. "
