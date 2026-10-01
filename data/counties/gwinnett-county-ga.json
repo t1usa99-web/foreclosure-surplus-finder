@@ -11,10 +11,10 @@
  "no_claim_form": false,
  "hold_years": 5,
  "source_url": "https://www.gwinnetttaxcommissioner.com/property-tax/tax-sale-excess-funds",
- "updated": "2026-07-13",
+ "updated": "2026-10-01",
  "records": [
   {"sale_date": "May 2025", "parcel": "R7233 032", "previous_owner": "SAMIYA MUSTAFA", "property_address": "3920 WESTBROOK RD", "overage": 768394.83, "status": "Unclaimed"},
-  {"sale_date": "December 2024", "parcel": "R7088 348", "previous_owner": "DAVIDSON TAWANA L", "property_address": "1870 SPRING ROSE GLN", "overage": 307800.94, "status": "Unclaimed"},
+  {"sale_date": "December 2024", "parcel": "R7088 348", "previous_owner": "DAVIDSON TAWANA L", "property_address": "1870 SPRING ROSE GLN", "overage": 307802.94, "status": "Unclaimed"},
   {"sale_date": "August 2024", "parcel": "R7026 283", "previous_owner": "MINTON EVELYN TICE", "property_address": "1040 SUNNY FIELD CT", "overage": 271224.96, "status": "Unclaimed"},
   {"sale_date": "August 2021", "parcel": "R6226 086", "previous_owner": "RIDING WILLIAM S & KIMA S", "property_address": "2212 TAHOE CT", "overage": 201994.3, "status": "Unclaimed"},
   {"sale_date": "August 2021", "parcel": "R6180D017", "previous_owner": "CAMERON ROBERT ALANSON ETAL", "property_address": "1219 OVERTON DR", "overage": 129320.39, "status": "Unclaimed"},
